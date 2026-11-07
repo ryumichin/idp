@@ -3,7 +3,7 @@ import json
 import requests
 
 URL = "http://kota2.indopride.id:30120"
-TIMEOUT = 2
+TIMEOUT = 1
 
 
 class handler(BaseHTTPRequestHandler):
@@ -11,9 +11,12 @@ class handler(BaseHTTPRequestHandler):
         try:
             players = requests.get(f"{URL}/players.json", timeout=TIMEOUT).json()
             info = requests.get(f"{URL}/info.json", timeout=TIMEOUT).json()
+            v = info.get("vars", {})
             body = {
                 "online": len(players),
-                "max": info.get("vars", {}).get("sv_maxClients", "?"),
+                "max": int(v.get("sv_maxClients", 0) or 0),
+                "name": v.get("sv_projectName") or v.get("sv_hostname") or "FiveM Server",
+                "icon": info.get("icon"),  # base64 PNG, bisa kosong
             }
             status = 200
         except Exception as e:
