@@ -5,30 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Status Server</title>
   <style>
-    body { font-family: system-ui, sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; background: #111; color: #eee; }
-    h1 { font-size: 4rem; margin: 0; }
-    p { color: #888; }
+    :root {
+      --bg1: #0b0f1a;
+      --bg2: #1a1033;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f2f4f8;
+      --muted: #8b93a7;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --ok: #22c55e;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(249, 115, 22, 0.18), transparent 60%),
+        radial-gradient(800px 500px at 90% 90%, rgba(124, 58, 237, 0.20), transparent 60%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+    }
+    .card {
+      width: min(420px, 100%);
+      padding: 36px 28px 28px;
+      text-align: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+    .logo-wrap {
+      width: 104px; height: 104px;
+      margin: 0 auto 18px;
+      border-radius: 28px;
+      padding: 3px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      box-shadow: 0 0 40px rgba(249, 115, 22, 0.35);
+    }
+    .logo-wrap img, .logo-wrap .fallback {
+      width: 100%; height: 100%;
+      border-radius: 25px;
+      background: #12162a;
+      object-fit: cover;
+      display: block;
+    }
+    .fallback { display: grid; place-items: center; font-size: 2.6rem; }
+    h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 650; letter-spacing: .2px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px;
+      font-size: .8rem; font-weight: 600;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+    .pill.online { color: var(--ok); }
+    .pill.online .dot { background: var(--ok); animation: pulse 1.8s infinite; }
+    .pill.offline { color: var(--bad); }
+    .pill.offline .dot { background: var(--bad); }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
+      70%  { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .count { margin: 26px 0 4px; line-height: 1; font-weight: 800; font-size: clamp(3.4rem, 16vw, 4.6rem); font-variant-numeric: tabular-nums; }
+    .count .now { background: linear-gradient(135deg, var(--accent2), #f43f5e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .count .max { font-size: .45em; color: var(--muted); font-weight: 600; }
+    .label { color: var(--muted); font-size: .85rem; letter-spacing: 2px; text-transform: uppercase; }
+    .bar { margin: 22px 0 6px; height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .bar > i { display: block; height: 100%; width: 0; min-width: 6px; border-radius: inherit; background: linear-gradient(90deg, var(--accent), #f43f5e); transition: width .8s ease; }
+    .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .78rem; }
+    .updated { margin-top: 22px; color: var(--muted); font-size: .78rem; }
   </style>
 </head>
 <body>
-  <div style="text-align:center">
-    <h1 id="jumlah">...</h1>
-    <p id="status">Memuat data</p>
-  </div>
+  <main class="card">
+    <div class="logo-wrap">
+      <img id="logo" alt="Logo server" hidden>
+      <div id="fallback" class="fallback">🎮</div>
+    </div>
+
+    <h2 id="nama">Memuat…</h2>
+    <span id="pill" class="pill"><span class="dot"></span><span id="pilltext">Menghubungkan</span></span>
+
+    <div class="count"><span class="now" id="now">0</span><span class="max"> / <span id="max">0</span></span></div>
+    <div class="label">Player Online</div>
+
+    <div class="bar"><i id="fill"></i></div>
+    <div class="meta"><span id="persen">0%</span><span>Slot terisi</span></div>
+
+    <div class="updated" id="updated">—</div>
+  </main>
+
   <script>
+    const POLL_MS = 1000; // data di-cache 15 dtk di server, jadi 10 dtk sudah cukup
+
+    const $ = (id) => document.getElementById(id);
+    let tampil = 0;
+
+    // Hapus kode warna FiveM seperti ^1 ^2 ... dari nama server
+    const bersihkan = (s) => String(s).replace(/\^\d/g, "").trim();
+
+    // Animasi angka naik/turun
+    function animasi(ke) {
+      const dari = tampil, mulai = performance.now(), durasi = 700;
+      function langkah(t) {
+        const p = Math.min((t - mulai) / durasi, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        $("now").textContent = Math.round(dari + (ke - dari) * e).toLocaleString("id-ID");
+        if (p < 1) requestAnimationFrame(langkah);
+      }
+      requestAnimationFrame(langkah);
+      tampil = ke;
+    }
+
+    function setLogo(icon) {
+      const img = $("logo");
+      const pakai = (src) => { img.src = src; img.hidden = false; $("fallback").hidden = true; };
+      img.onerror = () => { img.hidden = true; $("fallback").hidden = false; };
+      if (icon) pakai("data:image/png;base64," + icon);
+      else pakai("/logo.png"); // taruh file logo.png di folder public/ (opsional)
+    }
+
+    let logoSudahDiset = false;
+
     async function muat() {
       try {
         const r = await fetch("/api/players");
         const d = await r.json();
         if (d.error) throw new Error(d.error);
-        document.getElementById("jumlah").textContent = `${d.online}/${d.max}`;
-        document.getElementById("status").textContent = "Update: " + new Date().toLocaleTimeString("id-ID");
+
+        if (!logoSudahDiset) { setLogo(d.icon); logoSudahDiset = true; }
+
+        $("nama").textContent = bersihkan(d.name);
+        document.title = `${d.online} online · ${bersihkan(d.name)}`;
+        $("max").textContent = d.max.toLocaleString("id-ID");
+        animasi(d.online);
+
+        const persen = d.max ? (d.online / d.max) * 100 : 0;
+        $("fill").style.width = Math.min(persen, 100) + "%";
+        $("persen").textContent = persen.toFixed(1) + "%";
+
+        $("pill").className = "pill online";
+        $("pilltext").textContent = "Online";
+        $("updated").textContent = "Diperbarui " + new Date().toLocaleTimeString("id-ID");
       } catch (e) {
-        document.getElementById("status").textContent = "Gagal memuat data";
+        $("pill").className = "pill offline";
+        $("pilltext").textContent = "Tidak terhubung";
+        $("updated").textContent = "Gagal memuat data, mencoba lagi…";
       }
     }
+
     muat();
-    setInterval(muat, 1000);
+    setInterval(muat, POLL_MS);
   </script>
 </body>
 </html>
