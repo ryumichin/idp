@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status Server</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; background: #111; color: #eee; }
+    h1 { font-size: 4rem; margin: 0; }
+    p { color: #888; }
+  </style>
+</head>
+<body>
+  <div style="text-align:center">
+    <h1 id="jumlah">...</h1>
+    <p id="status">Memuat data</p>
+  </div>
+  <script>
+    async function muat() {
+      try {
+        const r = await fetch("/api/players");
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        document.getElementById("jumlah").textContent = `${d.online}/${d.max}`;
+        document.getElementById("status").textContent = "Update: " + new Date().toLocaleTimeString("id-ID");
+      } catch (e) {
+        document.getElementById("status").textContent = "Gagal memuat data";
+      }
+    }
+    muat();
+    setInterval(muat, 1000);
+  </script>
+</body>
+</html>
