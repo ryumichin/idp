@@ -11,12 +11,9 @@ class handler(BaseHTTPRequestHandler):
         try:
             players = requests.get(f"{URL}/players.json", timeout=TIMEOUT).json()
             info = requests.get(f"{URL}/info.json", timeout=TIMEOUT).json()
-            v = info.get("vars", {})
             body = {
                 "online": len(players),
-                "max": int(v.get("sv_maxClients", 0) or 0),
-                "name": v.get("sv_projectName") or v.get("sv_hostname") or "FiveM Server",
-                "icon": info.get("icon"),  # base64 PNG, bisa kosong
+                "max": info.get("vars", {}).get("sv_maxClients", "?"),
             }
             status = 200
         except Exception as e:
