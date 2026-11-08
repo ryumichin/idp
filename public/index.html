@@ -6,105 +6,197 @@
   <title>Status Server</title>
   <style>
     :root {
-      --bg1: #0b0f1a;
-      --bg2: #1a1033;
-      --card: rgba(255, 255, 255, 0.06);
-      --border: rgba(255, 255, 255, 0.12);
-      --text: #f2f4f8;
-      --muted: #8b93a7;
+      --bg: #0d1020;
+      --bg-glow-1: rgba(249, 115, 22, 0.16);
+      --bg-glow-2: rgba(124, 58, 237, 0.18);
+      --card: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.10);
+      --track: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f8;
+      --muted: #9aa1b5;
       --accent: #f97316;
-      --accent2: #fb923c;
+      --accent-2: #f43f5e;
       --ok: #22c55e;
       --bad: #ef4444;
+      --radius: 20px;
     }
-    * { box-sizing: border-box; }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f5fa;
+        --bg-glow-1: rgba(249, 115, 22, 0.14);
+        --bg-glow-2: rgba(124, 58, 237, 0.12);
+        --card: rgba(255, 255, 255, 0.85);
+        --border: rgba(20, 24, 40, 0.10);
+        --track: rgba(20, 24, 40, 0.08);
+        --text: #161a2b;
+        --muted: #5d6479;
+        --ok: #15803d;
+        --bad: #b91c1c;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
     body {
       margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
       padding: 24px;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(900px 500px at 15% 10%, rgba(249, 115, 22, 0.18), transparent 60%),
-        radial-gradient(800px 500px at 90% 90%, rgba(124, 58, 237, 0.20), transparent 60%),
-        linear-gradient(160deg, var(--bg1), var(--bg2));
+        radial-gradient(800px 480px at 10% 0%, var(--bg-glow-1), transparent 60%),
+        radial-gradient(800px 480px at 100% 100%, var(--bg-glow-2), transparent 60%),
+        var(--bg);
     }
+
     .card {
-      width: min(420px, 100%);
-      padding: 36px 28px 28px;
-      text-align: center;
+      width: min(400px, 100%);
+      padding: 24px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: var(--radius);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
     }
-    .logo-wrap {
-      width: 104px; height: 104px;
-      margin: 0 auto 18px;
-      border-radius: 28px;
-      padding: 3px;
-      background: linear-gradient(135deg, var(--accent), #7c3aed);
-      box-shadow: 0 0 40px rgba(249, 115, 22, 0.35);
+
+    /* Header: logo + nama + status */
+    .head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
-    .logo-wrap img, .logo-wrap .fallback {
-      width: 100%; height: 100%;
-      border-radius: 25px;
-      background: #12162a;
-      object-fit: cover;
-      display: block;
+    .logo {
+      flex: none;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--track);
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
     }
-    .fallback { display: grid; place-items: center; font-size: 2.6rem; }
-    h2 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 650; letter-spacing: .2px; }
+    .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .info { min-width: 0; }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      font-weight: 650;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .pill {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 5px 14px;
-      font-size: .8rem; font-weight: 600;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .8rem;
+      font-weight: 600;
       color: var(--muted);
     }
-    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
-    .pill.online { color: var(--ok); }
-    .pill.online .dot { background: var(--ok); animation: pulse 1.8s infinite; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .pill.online  { color: var(--ok); }
     .pill.offline { color: var(--bad); }
-    .pill.offline .dot { background: var(--bad); }
+    .pill.online .dot { animation: pulse 2s infinite; }
+
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
-      70%  { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); }
+      0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); }
+      70%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
       100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
-    .count { margin: 26px 0 4px; line-height: 1; font-weight: 800; font-size: clamp(3.4rem, 16vw, 4.6rem); font-variant-numeric: tabular-nums; }
-    .count .now { background: linear-gradient(135deg, var(--accent2), #f43f5e); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .count .max { font-size: .45em; color: var(--muted); font-weight: 600; }
-    .label { color: var(--muted); font-size: .85rem; letter-spacing: 2px; text-transform: uppercase; }
-    .bar { margin: 22px 0 6px; height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
-    .bar > i { display: block; height: 100%; width: 0; min-width: 6px; border-radius: inherit; background: linear-gradient(90deg, var(--accent), #f43f5e); transition: width .8s ease; }
-    .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .78rem; }
-    .updated { margin-top: 22px; color: var(--muted); font-size: .78rem; }
+
+    /* Jumlah pemain */
+    .count {
+      margin-top: 28px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .now {
+      font-size: clamp(3.2rem, 15vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .max { font-size: 1.4rem; font-weight: 600; color: var(--muted); }
+    .caption { margin: 6px 0 0; color: var(--muted); font-size: .9rem; }
+
+    /* Bar slot */
+    .bar {
+      margin-top: 20px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--track);
+      overflow: hidden;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      min-width: 6px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .8s ease;
+    }
+    .meta {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: .8rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .updated {
+      margin: 20px 0 0;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pill.online .dot { animation: none; }
+      .bar > i { transition: none; }
+    }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="logo-wrap">
-      <img id="logo" alt="Logo server" hidden>
-      <div id="fallback" class="fallback">🎮</div>
+    <header class="head">
+      <div class="logo">
+        <img id="logo" alt="Logo server" hidden>
+        <span id="fallback" aria-hidden="true"></span>
+      </div>
+      <div class="info">
+        <h1 id="nama">Memuat…</h1>
+        <span id="pill" class="pill"><span class="dot"></span><span id="pilltext">Menghubungkan</span></span>
+      </div>
+    </header>
+
+    <div class="count" aria-live="polite">
+      <span class="now" id="now">0</span>
+      <span class="max">/ <span id="max">0</span></span>
     </div>
+    <p class="caption">Pemain online</p>
 
-    <h2 id="nama">Memuat…</h2>
-    <span id="pill" class="pill"><span class="dot"></span><span id="pilltext">Menghubungkan</span></span>
-
-    <div class="count"><span class="now" id="now">0</span><span class="max"> / <span id="max">0</span></span></div>
-    <div class="label">Player Online</div>
-
-    <div class="bar"><i id="fill"></i></div>
+    <div class="bar" role="progressbar" aria-label="Slot terisi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar">
+      <i id="fill"></i>
+    </div>
     <div class="meta"><span id="persen">0%</span><span>Slot terisi</span></div>
 
-    <div class="updated" id="updated">—</div>
+    <p class="updated" id="updated">—</p>
   </main>
 
   <script>
@@ -112,6 +204,7 @@
 
     const $ = (id) => document.getElementById(id);
     let tampil = 0;
+    let logoSudahDiset = false;
 
     // Hapus kode warna FiveM seperti ^1 ^2 ... dari nama server
     const bersihkan = (s) => String(s).replace(/\^\d/g, "").trim();
@@ -119,6 +212,7 @@
     // Animasi angka naik/turun
     function animasi(ke) {
       const dari = tampil, mulai = performance.now(), durasi = 700;
+      tampil = ke;
       function langkah(t) {
         const p = Math.min((t - mulai) / durasi, 1);
         const e = 1 - Math.pow(1 - p, 3);
@@ -126,18 +220,15 @@
         if (p < 1) requestAnimationFrame(langkah);
       }
       requestAnimationFrame(langkah);
-      tampil = ke;
     }
 
     function setLogo(icon) {
       const img = $("logo");
-      const pakai = (src) => { img.src = src; img.hidden = false; $("fallback").hidden = true; };
+      img.onload = () => { img.hidden = false; $("fallback").hidden = true; };
       img.onerror = () => { img.hidden = true; $("fallback").hidden = false; };
-      if (icon) pakai("data:image/png;base64," + icon);
-      else pakai("/logo.png"); // taruh file logo.png di folder public/ (opsional)
+      // Tanpa icon dari server, pakai /logo.png (taruh di folder public/, opsional)
+      img.src = icon ? "data:image/png;base64," + icon : "/logo.png";
     }
-
-    let logoSudahDiset = false;
 
     async function muat() {
       try {
@@ -147,13 +238,15 @@
 
         if (!logoSudahDiset) { setLogo(d.icon); logoSudahDiset = true; }
 
-        $("nama").textContent = bersihkan(d.name);
-        document.title = `${d.online} online · ${bersihkan(d.name)}`;
+        const nama = bersihkan(d.name);
+        $("nama").textContent = nama;
+        document.title = `${d.online} online · ${nama}`;
         $("max").textContent = d.max.toLocaleString("id-ID");
         animasi(d.online);
 
-        const persen = d.max ? (d.online / d.max) * 100 : 0;
-        $("fill").style.width = Math.min(persen, 100) + "%";
+        const persen = d.max ? Math.min((d.online / d.max) * 100, 100) : 0;
+        $("fill").style.width = persen + "%";
+        $("bar").setAttribute("aria-valuenow", Math.round(persen));
         $("persen").textContent = persen.toFixed(1) + "%";
 
         $("pill").className = "pill online";
