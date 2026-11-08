@@ -3,7 +3,7 @@ import json
 import requests
 
 URL = "http://kota2.indopride.id:30120"
-TIMEOUT = 5
+TIMEOUT = 1
 
 
 class handler(BaseHTTPRequestHandler):
